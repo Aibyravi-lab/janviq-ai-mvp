@@ -1,5 +1,23 @@
-.env
-venv/
+# Python
 __pycache__/
-knowledge.txt
-KnowledgeBase/
+*.pyc
+venv/
+.env
+
+# VS Code
+.vscode/
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Office temporary files
+~$*.xlsx
+~$*.docx
+~$*.pptx
+
+# Archives
+SOP's Old/
+
+# Large generated files
+*.log
