@@ -1,73 +1,110 @@
 import streamlit as st
 from openai import OpenAI
 from dotenv import load_dotenv
+from citation_search import search_knowledge_with_citation
 import os
 
+
+# Load environment variables
 load_dotenv()
 
+
+# OpenAI Client
 client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY")
 )
 
-st.title("JANVIQ AI")
-st.subheader("IAM Knowledge Assistant")
+
+# UI
+st.title("🚀 JANVIQ AI")
+st.subheader("Enterprise IAM Knowledge Assistant")
 
 
-def search_knowledge(question):
+question = st.text_input(
+    "Ask your IAM question"
+)
 
-    with open("knowledge.txt", "r", encoding="utf-8") as f:
-        knowledge = f.read()
-
-    question_words = question.lower().split()
-
-    results = []
-
-    for line in knowledge.split("\n"):
-
-        score = 0
-
-        for word in question_words:
-
-            if word in line.lower():
-                score += 1
-
-        if score > 0:
-            results.append((score, line))
-
-    results.sort(reverse=True)
-
-    context = "\n".join([r[1] for r in results[:20]])
-
-    return context
-
-
-question = st.text_input("Ask your question")
 
 if question:
 
-    with st.spinner("Searching OIM Knowledge Base..."):
+    with st.spinner("Searching verified knowledge..."):
 
-        context = search_knowledge(question)
-
-    with st.spinner("Generating Answer..."):
-
-        prompt = f"""
-You are an Oracle Identity Manager expert.
-
-Use the following OIM documentation context to answer the user's question.
-
-Context:
-{context}
-
-Question:
-{question}
-
-Give a professional and accurate answer based on the documentation.
-"""
-
-        response = client.responses.create(
-            model="gpt-5.5",
-            input=prompt
+        results = search_knowledge_with_citation(
+            question
         )
 
-        st.write(response.output_text)
+
+    if not results:
+
+        st.warning(
+            "No relevant documentation found."
+        )
+
+    else:
+
+        # Build context for GPT
+        context = ""
+
+        for item in results:
+
+            context += f"""
+Document: {item['document']}
+Page: {item['page']}
+
+Content:
+{item['content']}
+
+----------------------
+"""
+
+
+        with st.spinner("Generating expert answer..."):
+
+            prompt = f"""
+You are JANVIQ AI, an enterprise IAM expert.
+
+Use only the documentation provided below.
+
+Documentation:
+{context}
+
+
+User Question:
+{question}
+
+
+Instructions:
+- Give a professional IAM answer.
+- Do not make up information.
+- Use the documentation evidence.
+- Keep the answer clear and structured.
+"""
+
+
+            response = client.responses.create(
+                model="gpt-5.5",
+                input=prompt
+            )
+
+
+        # AI Answer
+        st.markdown(
+            "## 🤖 JANVIQ AI Answer"
+        )
+
+        st.write(
+            response.output_text
+        )
+
+
+        # Citations
+        st.markdown(
+            "## 📚 Sources"
+        )
+
+
+        for item in results:
+
+            st.write(
+                f"📄 {item['document']} | Page {item['page']}"
+            )
